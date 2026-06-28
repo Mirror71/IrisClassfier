@@ -31,13 +31,19 @@ def train_and_save_model(df):
 
     return model, vectorizer
 
-# Load or train model
-if os.path.exists("model.pkl") and os.path.exists("vectorizer.pkl"):
-    model = joblib.load("model.pkl")
-    vectorizer = joblib.load("vectorizer.pkl")
-else:
-    df = load_data()
-    model, vectorizer = train_and_save_model(df)
+# Load pre-trained model if available, otherwise train from the dataset.
+# Falls back to training when the .pkl files are missing or were created
+# with an incompatible scikit-learn version (so deployment never breaks).
+@st.cache_resource
+def get_model():
+    if os.path.exists("model.pkl") and os.path.exists("vectorizer.pkl"):
+        try:
+            return joblib.load("model.pkl"), joblib.load("vectorizer.pkl")
+        except Exception as e:
+            st.warning(f"Pre-trained model tidak kompatibel, melatih ulang... ({e})")
+    return train_and_save_model(load_data())
+
+model, vectorizer = get_model()
 
 # User input
 st.subheader("Cek apakah SMS termasuk spam:")
